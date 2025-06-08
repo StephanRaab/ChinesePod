@@ -141,23 +141,41 @@ def download_file(url, folder, filename):
         print(f"  - Skipping: {filename} already exists in {folder}.")
         return
 
-    try:
-        print(f"  - Downloading: {filename} from {url}")
-        # Use stream=True for potentially large files to avoid loading entire file into memory at once.
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-        }
-        with requests.get(url, stream=True, headers=headers, timeout=60) as r:
-            r.raise_for_status() # Will raise an exception for 4xx/5xx responses.
-            with open(filepath, 'wb') as f:
-                # Write content in chunks.
-                for chunk in r.iter_content(chunk_size=8192):
-                    f.write(chunk)
-        print(f"  - Successfully downloaded: {filename}")
-    except requests.exceptions.RequestException as e:
-        print(f"  - Error downloading {url} to {filename}: {e}")
-    except Exception as e:
-        print(f"  - An unexpected error occurred while downloading {filename}: {e}")
+    max_retries = 3
+    retry_delay = 2  # seconds
+    
+    for attempt in range(max_retries):
+        try:
+            if attempt > 0:
+                print(f"  - Retry attempt {attempt + 1} for: {filename}")
+                time.sleep(retry_delay * attempt)  # Exponential backoff
+            
+            print(f"  - Downloading: {filename} from {url}")
+            # Use stream=True for potentially large files to avoid loading entire file into memory at once.
+            headers = {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+            with requests.get(url, stream=True, headers=headers, timeout=60) as r:
+                r.raise_for_status() # Will raise an exception for 4xx/5xx responses.
+                with open(filepath, 'wb') as f:
+                    # Write content in chunks.
+                    for chunk in r.iter_content(chunk_size=8192):
+                        f.write(chunk)
+            print(f"  - Successfully downloaded: {filename}")
+            return  # Success, exit the retry loop
+            
+        except requests.exceptions.HTTPError as e:
+            if r.status_code == 404:
+                print(f"  - Audio file not found in archive for {filename} (404 error)")
+                return  # Don't retry 404s - the file simply doesn't exist in the archive
+            else:
+                print(f"  - HTTP error downloading {filename} (attempt {attempt + 1}): {e}")
+        except requests.exceptions.RequestException as e:
+            print(f"  - Network error downloading {filename} (attempt {attempt + 1}): {e}")
+        except Exception as e:
+            print(f"  - Unexpected error downloading {filename} (attempt {attempt + 1}): {e}")
+    
+    print(f"  - Failed to download {filename} after {max_retries} attempts")
 
 def sanitize_filename(title):
     """
@@ -257,14 +275,14 @@ def main():
                 print(f"    Could not fetch detail page for '{lesson_title_from_listing}' at {lesson_detail_url}")
 
             # Be polite: add a small delay between fetching individual lesson pages.
-            time.sleep(1) # Wait 1 second to avoid overwhelming the server.
+            time.sleep(2) # Wait 2 seconds to avoid overwhelming the server.
 
         # Move to the next lesson listing page if a link was found.
         current_page_full_url = next_page_full_url
         if current_page_full_url:
             print(f"Moving to next lesson listing page: {current_page_full_url}")
             # Add a longer delay before moving to the next listing page.
-            time.sleep(3) # Wait 3 seconds before next listing page request.
+            time.sleep(5) # Wait 5 seconds before next listing page request.
         else:
             print("No more listing pages to crawl. Crawl completed.")
 

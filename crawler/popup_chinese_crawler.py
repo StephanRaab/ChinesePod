@@ -4,6 +4,7 @@ import os
 from urllib.parse import urljoin, urlparse
 import time # For adding delays
 import json # For saving the summary
+import re # For parsing flashvars
 
 # --- Configuration ---
 # Base URL for the Wayback Machine archive.
@@ -44,52 +45,98 @@ def parse_lessons_page(html_content, current_page_url):
     """
     Parses a lesson listing page to find individual lesson links (title and URL)
     and the link to the next pagination page.
-    Selectors in this function are specifically tailored to the provided HTML for listing pages.
+    Updated with multiple selectors to handle different page layouts.
     """
     soup = BeautifulSoup(html_content, 'html.parser')
     lessons_on_page = []
     next_page_link = None
 
-    # --- 1. Find Lesson Items ---
-    # Each lesson block is contained within a <div> with the class 'archive_teaser'.
+    # --- 1. Find Lesson Items with multiple selector strategies ---
+    lesson_elements = []
+    
+    # Strategy 1: Original selector
     lesson_elements = soup.select('div.archive_teaser')
     if not lesson_elements:
-        print("Warning: No 'archive_teaser' lesson elements found on this listing page. Check selector or page content.")
+        # Strategy 2: Look for other common lesson containers
+        lesson_elements = soup.select('div.lesson_teaser')
+    if not lesson_elements:
+        # Strategy 3: Look for any div containing lesson links
+        lesson_elements = soup.select('div[class*="teaser"]')
+    if not lesson_elements:
+        # Strategy 4: Find all links that contain lesson URLs
+        lesson_links = soup.find_all('a', href=re.compile(r'/lessons/[^/]+/[^/]+/?$'))
+        for link in lesson_links:
+            # Create pseudo-elements to match the expected structure
+            lesson_elements.append(link.parent)
+    
+    print(f"Found {len(lesson_elements)} potential lesson elements")
 
     for item in lesson_elements:
-        # --- 1a. Find Lesson Title and URL within each lesson item ---
-        # The direct link to the lesson page and its title are found in an <a> tag
-        # within a <div> with class 'archive_title'.
+        # --- Multiple strategies to find lesson title and URL ---
+        lesson_link_tag = None
+        title = ""
+        lesson_url = ""
+        
+        # Strategy 1: Original selector
         lesson_link_tag = item.select_one('div.archive_title a')
         
+        if not lesson_link_tag:
+            # Strategy 2: Look for any link within the item
+            lesson_link_tag = item.find('a', href=re.compile(r'/lessons/'))
+        
+        if not lesson_link_tag:
+            # Strategy 3: Check if the item itself is a link
+            if item.name == 'a' and item.get('href') and '/lessons/' in item.get('href', ''):
+                lesson_link_tag = item
+        
         if lesson_link_tag and lesson_link_tag.get('href'):
+            # Get title from link text
             title = lesson_link_tag.get_text(strip=True)
-            # urljoin correctly constructs an absolute URL from a relative one.
+            
+            # If title is empty, try to get it from nearby elements
+            if not title:
+                # Look for title in parent or sibling elements
+                parent = lesson_link_tag.parent
+                if parent:
+                    title_candidates = [
+                        parent.get_text(strip=True),
+                        lesson_link_tag.get('title', ''),
+                        lesson_link_tag.get('alt', '')
+                    ]
+                    for candidate in title_candidates:
+                        if candidate and len(candidate) > 3:  # Reasonable title length
+                            title = candidate
+                            break
+            
+            # If still no title, extract from URL
+            if not title:
+                url_parts = lesson_link_tag['href'].strip('/').split('/')
+                if len(url_parts) >= 2:
+                    title = url_parts[-1].replace('-', ' ').title()
+            
             lesson_url = urljoin(current_page_url, lesson_link_tag['href'])
-            lessons_on_page.append({'title': title, 'url': lesson_url})
+            
+            if title and lesson_url:
+                print(f"  Found lesson: '{title}' -> {lesson_url}")
+                lessons_on_page.append({'title': title, 'url': lesson_url})
+            else:
+                print(f"  Skipping item - missing title or URL: title='{title}', url='{lesson_url}'")
 
-    # --- 2. Find the "Next Page" Link ---
-    # The pagination links are located within a <div> with class 'paginator' and id 'paginator'.
+    # --- 2. Find the "Next Page" Link (unchanged) ---
     paginator_div = soup.select_one('div.paginator#paginator')
     if paginator_div:
-        # Find the currently selected page link (e.g., '2' with class 'selected').
         current_page_tag = paginator_div.select_one('a.selected')
         if current_page_tag:
             try:
                 current_page_num = int(current_page_tag.get_text(strip=True))
-                # Calculate the next page number.
                 next_page_num = current_page_num + 1
-                # Find the <a> tag whose text content is the next page number.
                 next_link_tag = paginator_div.find('a', string=str(next_page_num))
                 
                 if next_link_tag and next_link_tag.get('href'):
                     absolute_next_url = urljoin(current_page_url, next_link_tag['href'])
-                    # Basic check to ensure it's not linking back to the current page
-                    # (important with Wayback Machine URLs that can be complex).
                     if absolute_next_url != current_page_url:
                         parsed_current = urlparse(current_page_url)
                         parsed_next = urlparse(absolute_next_url)
-                        # If paths and queries are identical, it's not a truly distinct next page.
                         if parsed_current.path == parsed_next.path and parsed_current.query == parsed_next.query:
                             next_page_link = None
                         else:
@@ -104,26 +151,49 @@ def parse_lessons_page(html_content, current_page_url):
 def parse_lesson_page_for_audio(html_content, lesson_detail_url):
     """
     Parses a single lesson detail page to find the main audio file URL.
-    This function's selectors are tailored to the provided HTML for detail pages.
+    Updated to handle both <audio> tags and Flash player flashvars.
     """
     soup = BeautifulSoup(html_content, 'html.parser')
     audio_url = None
 
-    # The audio player is within an <audio> tag.
+    # Strategy 1: Look for HTML5 audio tag (for absolute beginners)
     audio_tag = soup.find('audio') 
     
     if audio_tag:
-        # The actual audio source URL is within a <source> tag inside the <audio> tag.
         source_tag = audio_tag.find('source')
         if source_tag and source_tag.get('src'):
             audio_url = source_tag['src']
-        # Fallback if the src attribute was directly on the <audio> tag itself (less common when <source> is used).
         elif audio_tag.get('src'): 
             audio_url = audio_tag['src']
+    
+    # Strategy 2: Look for Flash player with flashvars (for higher levels)
+    if not audio_url:
+        # Look for ruffle-embed or embed tags with flashvars
+        flash_elements = soup.find_all(['ruffle-embed', 'embed', 'object'])
+        
+        for element in flash_elements:
+            flashvars = element.get('flashvars', '')
+            if flashvars and 'mp3url=' in flashvars:
+                # Extract mp3url from flashvars
+                # Format: "mp3url=http://popupchinese.com/data/1382/audio.mp3"
+                match = re.search(r'mp3url=([^&\s]+)', flashvars)
+                if match:
+                    audio_url = match.group(1)
+                    print(f"    Found audio URL in flashvars: {audio_url}")
+                    break
+    
+    # Strategy 3: Look for direct links to audio files
+    if not audio_url:
+        audio_links = soup.find_all('a', href=re.compile(r'\.(mp3|wav|m4a)(\?|$)', re.I))
+        if audio_links:
+            audio_url = audio_links[0]['href']
+            print(f"    Found direct audio link: {audio_url}")
 
     if audio_url:
-        # Convert relative audio URLs to absolute URLs using the lesson detail page's URL as base.
-        return urljoin(lesson_detail_url, audio_url)
+        # Convert relative audio URLs to absolute URLs
+        absolute_url = urljoin(lesson_detail_url, audio_url)
+        print(f"    Final audio URL: {absolute_url}")
+        return absolute_url
         
     return None
 
@@ -268,96 +338,6 @@ def sanitize_filename(title):
     if not s:
         s = "untitled_lesson"
     return s + '.mp3'
-    """
-    Prompts the user for the lesson category and starting page.
-    Returns the complete URL path to start crawling from.
-    """
-    print("=== PopupChinese Audio Crawler ===")
-    print("Available lesson categories:")
-    print("1. absolute-beginners")
-    print("2. elementary")
-    print("3. intermediate")
-    print("4. upper-intermediate")
-    print("5. advanced")
-    print("6. media")
-    print("7. academic")
-    print("8. custom (enter your own)")
-    
-    while True:
-        choice = input("\nSelect a category (1-8): ").strip()
-        
-        if choice == "1":
-            category = "absolute-beginners"
-            break
-        elif choice == "2":
-            category = "elementary"
-            break
-        elif choice == "3":
-            category = "intermediate"
-            break
-        elif choice == "4":
-            category = "upper-intermediate"
-            break
-        elif choice == "5":
-            category = "advanced"
-            break
-        elif choice == "6":
-            category = "media"
-            break
-        elif choice == "7":
-            category = "academic"
-            break
-        elif choice == "8":
-            category = input("Enter custom category: ").strip()
-            if category:
-                break
-            else:
-                print("Please enter a valid category name.")
-                continue
-        else:
-            print("Please enter a number between 1-8.")
-            continue
-    
-    while True:
-        try:
-            page_num = input(f"\nEnter starting page number (default: 1): ").strip()
-            if not page_num:
-                page_num = 1
-            else:
-                page_num = int(page_num)
-            
-            if page_num < 1:
-                print("Page number must be 1 or greater.")
-                continue
-            break
-        except ValueError:
-            print("Please enter a valid number.")
-            continue
-    
-    # Construct the full path
-    lessons_path = f"{BASE_LESSONS_PATH}{category}?page={page_num}"
-    full_url = urljoin(BASE_ARCHIVE_URL, lessons_path)
-    
-    print(f"\nStarting URL: {full_url}")
-    confirm = input("Continue with this URL? (y/n): ").strip().lower()
-    
-    if confirm in ['y', 'yes']:
-        return lessons_path
-    else:
-        print("Cancelled by user.")
-        return None
-    """
-    Converts a lesson title into a safe filename by replacing/removing invalid characters.
-    Appends '.mp3' extension.
-    """
-    # Replace spaces with underscores for readability.
-    s = title.strip().replace(' ', '_')
-    # Remove any character that is not alphanumeric, an underscore, or a hyphen.
-    s = ''.join(c for c in s if c.isalnum() or c in ('_', '-'))
-    # Ensure the filename is not empty after sanitization.
-    if not s:
-        s = "untitled_lesson"
-    return s + '.mp3'
 
 # --- Main Crawler Logic ---
 
@@ -398,13 +378,12 @@ def main():
             break
         elif not lessons_on_current_page:
             print(f"No lessons found on {current_page_full_url}, but a next page link was found. Proceeding to next page.")
-            # This might happen if a page is unexpectedly empty or a selector is subtly wrong.
 
         # Process each lesson found on the current listing page.
         for lesson_info in lessons_on_current_page:
             lesson_title_from_listing = lesson_info['title'] # Title extracted from the listing page.
             lesson_detail_url = lesson_info['url'] # URL to the individual lesson detail page.
-            print(f"  - Found lesson in listing: '{lesson_title_from_listing}' at {lesson_detail_url}")
+            print(f"  - Processing lesson: '{lesson_title_from_listing}' at {lesson_detail_url}")
 
             # Fetch the HTML content of the individual lesson detail page.
             lesson_html = get_page_content(lesson_detail_url)
@@ -412,7 +391,6 @@ def main():
                 lesson_detail_soup = BeautifulSoup(lesson_html, 'html.parser')
                 
                 # --- Extract the specific lesson title from the detail page for accurate filename ---
-                # Based on the provided HTML: <div class="lesson_title">...</div>
                 main_title_element = lesson_detail_soup.find('div', class_='lesson_title')
                 
                 lesson_title_for_file = lesson_title_from_listing # Default to listing title
@@ -426,7 +404,7 @@ def main():
                     else:
                         lesson_title_for_file = full_title_text.strip()
                 else:
-                    print(f"    Warning: Main lesson title 'div.lesson_title' not found on {lesson_detail_url}. Using title from listing page.")
+                    print(f"    Warning: Main lesson title 'div.lesson_title' not found. Using title from listing page.")
 
                 # --- Extract the Audio Link from the lesson detail page ---
                 audio_link = parse_lesson_page_for_audio(lesson_html, lesson_detail_url)
@@ -435,7 +413,7 @@ def main():
                     sanitized_name = sanitize_filename(lesson_title_for_file)
                     # Add lesson details to the summary list.
                     all_lessons_summary.append({
-                        'title': lesson_title_for_file, # Store the potentially more accurate title.
+                        'title': lesson_title_for_file,
                         'lesson_url': lesson_detail_url,
                         'audio_url': audio_link,
                         'filename': sanitized_name

@@ -123,5 +123,163 @@ def parse_lesson_page_for_audio(html_content, lesson_detail_url):
         elif audio_tag.get('src'): 
             audio_url = audio_tag['src']
 
+    # --- THIS WAS THE MISSING LINE! ---
     if audio_url:
-        # Convert relative audio URLs to absolute URLs using
+        # Convert relative audio URLs to absolute URLs using the lesson detail page's URL as base.
+        return urljoin(lesson_detail_url, audio_url)
+    return None
+
+def download_file(url, folder, filename):
+    """
+    Downloads a file from a given URL and saves it to a specified local folder.
+    Includes basic error handling and a check to skip existing files.
+    """
+    filepath = os.path.join(folder, filename)
+    
+    # Skip download if the file already exists locally.
+    if os.path.exists(filepath):
+        print(f"  - Skipping: {filename} already exists in {folder}.")
+        return
+
+    try:
+        print(f"  - Downloading: {filename} from {url}")
+        # Use stream=True for potentially large files to avoid loading entire file into memory at once.
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+        }
+        with requests.get(url, stream=True, headers=headers, timeout=60) as r:
+            r.raise_for_status() # Will raise an exception for 4xx/5xx responses.
+            with open(filepath, 'wb') as f:
+                # Write content in chunks.
+                for chunk in r.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        print(f"  - Successfully downloaded: {filename}")
+    except requests.exceptions.RequestException as e:
+        print(f"  - Error downloading {url} to {filename}: {e}")
+    except Exception as e:
+        print(f"  - An unexpected error occurred while downloading {filename}: {e}")
+
+def sanitize_filename(title):
+    """
+    Converts a lesson title into a safe filename by replacing/removing invalid characters.
+    Appends '.mp3' extension.
+    """
+    # Replace spaces with underscores for readability.
+    s = title.strip().replace(' ', '_')
+    # Remove any character that is not alphanumeric, an underscore, or a hyphen.
+    s = ''.join(c for c in s if c.isalnum() or c in ('_', '-'))
+    # Ensure the filename is not empty after sanitization.
+    if not s:
+        s = "untitled_lesson"
+    return s + '.mp3'
+
+# --- Main Crawler Logic ---
+
+def main():
+    """
+    The main function that orchestrates the crawling process.
+    It iterates through lesson listing pages, fetches individual lesson pages,
+    extracts audio links and titles, and downloads the audio files.
+    """
+    # Start the crawling process from the initial lessons listing page.
+    current_page_full_url = urljoin(BASE_ARCHIVE_URL, START_LESSONS_PATH)
+    # List to store a summary of all lessons processed (useful for logging/debugging).
+    all_lessons_summary = []
+
+    print(f"Starting crawl from: {current_page_full_url}")
+
+    # Loop as long as there's a valid next page to visit.
+    while current_page_full_url:
+        print(f"\n--- Processing lesson listing page: {current_page_full_url} ---")
+        # Fetch the HTML content of the current listing page.
+        page_html = get_page_content(current_page_full_url)
+
+        if not page_html:
+            print(f"Failed to get content for {current_page_full_url}. Stopping crawl.")
+            break
+
+        # Parse the listing page to get lessons and the next page link.
+        lessons_on_current_page, next_page_full_url = parse_lessons_page(page_html, current_page_full_url)
+
+        # Handle cases where no lessons are found on a page.
+        if not lessons_on_current_page and not next_page_full_url:
+            print("No lessons found on this page and no next page link. Assuming end of crawl.")
+            break
+        elif not lessons_on_current_page:
+            print(f"No lessons found on {current_page_full_url}, but a next page link was found. Proceeding to next page.")
+            # This might happen if a page is unexpectedly empty or a selector is subtly wrong.
+
+        # Process each lesson found on the current listing page.
+        for lesson_info in lessons_on_current_page:
+            lesson_title_from_listing = lesson_info['title'] # Title extracted from the listing page.
+            lesson_detail_url = lesson_info['url'] # URL to the individual lesson detail page.
+            print(f"  - Found lesson in listing: '{lesson_title_from_listing}' at {lesson_detail_url}")
+
+            # Fetch the HTML content of the individual lesson detail page.
+            lesson_html = get_page_content(lesson_detail_url)
+            if lesson_html:
+                lesson_detail_soup = BeautifulSoup(lesson_html, 'html.parser')
+                
+                # --- Extract the specific lesson title from the detail page for accurate filename ---
+                # Based on the provided HTML: <div class="lesson_title">...</div>
+                main_title_element = lesson_detail_soup.find('div', class_='lesson_title')
+                
+                lesson_title_for_file = lesson_title_from_listing # Default to listing title
+
+                if main_title_element:
+                    full_title_text = main_title_element.get_text(strip=True)
+                    # The title format is "Category: Actual Lesson Title" (e.g., "Absolute Beginners: Pulling a Car").
+                    # We split by ": " to get just the "Actual Lesson Title".
+                    if ": " in full_title_text:
+                        lesson_title_for_file = full_title_text.split(": ", 1)[1].strip()
+                    else:
+                        lesson_title_for_file = full_title_text.strip()
+                else:
+                    print(f"    Warning: Main lesson title 'div.lesson_title' not found on {lesson_detail_url}. Using title from listing page.")
+
+                # --- Extract the Audio Link from the lesson detail page ---
+                audio_link = parse_lesson_page_for_audio(lesson_html, lesson_detail_url)
+                if audio_link:
+                    # Sanitize the title and prepare the filename.
+                    sanitized_name = sanitize_filename(lesson_title_for_file)
+                    # Add lesson details to the summary list.
+                    all_lessons_summary.append({
+                        'title': lesson_title_for_file, # Store the potentially more accurate title.
+                        'lesson_url': lesson_detail_url,
+                        'audio_url': audio_link,
+                        'filename': sanitized_name
+                    })
+                    # Download the audio file.
+                    download_file(audio_link, DOWNLOAD_DIR, sanitized_name)
+                else:
+                    print(f"    No audio found for '{lesson_title_for_file}' at {lesson_detail_url}")
+            else:
+                print(f"    Could not fetch detail page for '{lesson_title_from_listing}' at {lesson_detail_url}")
+
+            # Be polite: add a small delay between fetching individual lesson pages.
+            time.sleep(1) # Wait 1 second to avoid overwhelming the server.
+
+        # Move to the next lesson listing page if a link was found.
+        current_page_full_url = next_page_full_url
+        if current_page_full_url:
+            print(f"Moving to next lesson listing page: {current_page_full_url}")
+            # Add a longer delay before moving to the next listing page.
+            time.sleep(3) # Wait 3 seconds before next listing page request.
+        else:
+            print("No more listing pages to crawl. Crawl completed.")
+
+    print("\n--- Final Crawling Summary ---")
+    print(f"Total lessons with audio identified and attempted download: {len(all_lessons_summary)}")
+
+    # Save a summary of all processed lessons to a JSON file in the download directory.
+    summary_filename = os.path.join(DOWNLOAD_DIR, 'popup_chinese_audio_summary.json')
+    try:
+        with open(summary_filename, 'w', encoding='utf-8') as f:
+            json.dump(all_lessons_summary, f, indent=4, ensure_ascii=False)
+        print(f"Detailed summary saved to {summary_filename}")
+    except Exception as e:
+        print(f"Error saving summary file: {e}")
+
+# Entry point for the script when executed.
+if __name__ == "__main__":
+    main()

@@ -62,7 +62,7 @@ def parse_lessons_page(html_content, current_page_url):
         # --- 1a. Find Lesson Title and URL within each lesson item ---
         # The direct link to the lesson page and its title are found in an <a> tag
         # within a <div> with class 'archive_title'.
-        lesson_link_tag = item.select_one('div.archive_title a.black.nonlink')
+        lesson_link_tag = item.select_one('div.archive_title a')
         
         if lesson_link_tag and lesson_link_tag.get('href'):
             title = lesson_link_tag.get_text(strip=True)

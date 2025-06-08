@@ -159,7 +159,7 @@ def download_file(url, folder, filename):
                     # Write content in chunks.
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
-            print(f"  - Successfully downloaded: {filename}")
+            print(f"  - Successfully downloaded: {filename}\n")
             return  # Success, exit the retry loop
             
         except requests.exceptions.HTTPError as e:

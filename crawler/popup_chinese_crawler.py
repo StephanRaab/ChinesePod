@@ -13,7 +13,7 @@ BASE_ARCHIVE_URL = "https://web.archive.org"
 # The specific archived URL of the lesson listing page.
 # We're starting from page 1 as it's common practice.
 # This URL points to the "Absolute Beginners" category.
-START_LESSONS_PATH = "/web/20221129182300/https://popupchinese.com/lessons/absolute-beginners?page=1"
+START_LESSONS_PATH = "/web/20221129182300/https://popupchinese.com/lessons/absolute-beginners?page=4"
 
 # Directory where the downloaded audio files and the summary JSON will be saved.
 DOWNLOAD_DIR = "popup_chinese_audio"

@@ -175,6 +175,86 @@ def download_file(url, folder, filename):
     
     print(f"  - Failed to download {filename} after {max_retries} attempts")
 
+def get_user_input():
+    """
+    Prompts the user for the lesson category and starting page.
+    Returns the complete URL path to start crawling from.
+    """
+    print("=== PopupChinese Audio Crawler ===")
+    print("Available lesson categories:")
+    print("1. absolute-beginners")
+    print("2. elementary")
+    print("3. intermediate")
+    print("4. upper-intermediate")
+    print("5. advanced")
+    print("6. media")
+    print("7. academic")
+    print("8. custom (enter your own)")
+    
+    while True:
+        choice = input("\nSelect a category (1-8): ").strip()
+        
+        if choice == "1":
+            category = "absolute-beginners"
+            break
+        elif choice == "2":
+            category = "elementary"
+            break
+        elif choice == "3":
+            category = "intermediate"
+            break
+        elif choice == "4":
+            category = "upper-intermediate"
+            break
+        elif choice == "5":
+            category = "advanced"
+            break
+        elif choice == "6":
+            category = "media"
+            break
+        elif choice == "7":
+            category = "academic"
+            break
+        elif choice == "8":
+            category = input("Enter custom category: ").strip()
+            if category:
+                break
+            else:
+                print("Please enter a valid category name.")
+                continue
+        else:
+            print("Please enter a number between 1-8.")
+            continue
+    
+    while True:
+        try:
+            page_num = input(f"\nEnter starting page number (default: 1): ").strip()
+            if not page_num:
+                page_num = 1
+            else:
+                page_num = int(page_num)
+            
+            if page_num < 1:
+                print("Page number must be 1 or greater.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+            continue
+    
+    # Construct the full path
+    lessons_path = f"{BASE_LESSONS_PATH}{category}?page={page_num}"
+    full_url = urljoin(BASE_ARCHIVE_URL, lessons_path)
+    
+    print(f"\nStarting URL: {full_url}")
+    confirm = input("Continue with this URL? (y/n): ").strip().lower()
+    
+    if confirm in ['y', 'yes']:
+        return lessons_path
+    else:
+        print("Cancelled by user.")
+        return None
+
 def sanitize_filename(title):
     """
     Converts a lesson title into a safe filename by replacing/removing invalid characters.

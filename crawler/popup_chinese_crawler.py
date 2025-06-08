@@ -123,10 +123,10 @@ def parse_lesson_page_for_audio(html_content, lesson_detail_url):
         elif audio_tag.get('src'): 
             audio_url = audio_tag['src']
 
-    # --- THIS WAS THE MISSING LINE! ---
     if audio_url:
         # Convert relative audio URLs to absolute URLs using the lesson detail page's URL as base.
         return urljoin(lesson_detail_url, audio_url)
+        
     return None
 
 def download_file(url, folder, filename):

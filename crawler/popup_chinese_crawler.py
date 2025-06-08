@@ -10,10 +10,8 @@ import json # For saving the summary
 # This ensures all constructed URLs (relative links) correctly point to the archive.
 BASE_ARCHIVE_URL = "https://web.archive.org"
 
-# The specific archived URL of the lesson listing page.
-# We're starting from page 1 as it's common practice.
-# This URL points to the "Absolute Beginners" category.
-START_LESSONS_PATH = "/web/20221129182300/https://popupchinese.com/lessons/absolute-beginners?page=4"
+# Base path for the archived PopupChinese lessons
+BASE_LESSONS_PATH = "/web/20221129182300/https://popupchinese.com/lessons/"
 
 # Directory where the downloaded audio files and the summary JSON will be saved.
 DOWNLOAD_DIR = "popup_chinese_audio"
@@ -190,6 +188,96 @@ def sanitize_filename(title):
     if not s:
         s = "untitled_lesson"
     return s + '.mp3'
+    """
+    Prompts the user for the lesson category and starting page.
+    Returns the complete URL path to start crawling from.
+    """
+    print("=== PopupChinese Audio Crawler ===")
+    print("Available lesson categories:")
+    print("1. absolute-beginners")
+    print("2. elementary")
+    print("3. intermediate")
+    print("4. upper-intermediate")
+    print("5. advanced")
+    print("6. media")
+    print("7. academic")
+    print("8. custom (enter your own)")
+    
+    while True:
+        choice = input("\nSelect a category (1-8): ").strip()
+        
+        if choice == "1":
+            category = "absolute-beginners"
+            break
+        elif choice == "2":
+            category = "elementary"
+            break
+        elif choice == "3":
+            category = "intermediate"
+            break
+        elif choice == "4":
+            category = "upper-intermediate"
+            break
+        elif choice == "5":
+            category = "advanced"
+            break
+        elif choice == "6":
+            category = "media"
+            break
+        elif choice == "7":
+            category = "academic"
+            break
+        elif choice == "8":
+            category = input("Enter custom category: ").strip()
+            if category:
+                break
+            else:
+                print("Please enter a valid category name.")
+                continue
+        else:
+            print("Please enter a number between 1-8.")
+            continue
+    
+    while True:
+        try:
+            page_num = input(f"\nEnter starting page number (default: 1): ").strip()
+            if not page_num:
+                page_num = 1
+            else:
+                page_num = int(page_num)
+            
+            if page_num < 1:
+                print("Page number must be 1 or greater.")
+                continue
+            break
+        except ValueError:
+            print("Please enter a valid number.")
+            continue
+    
+    # Construct the full path
+    lessons_path = f"{BASE_LESSONS_PATH}{category}?page={page_num}"
+    full_url = urljoin(BASE_ARCHIVE_URL, lessons_path)
+    
+    print(f"\nStarting URL: {full_url}")
+    confirm = input("Continue with this URL? (y/n): ").strip().lower()
+    
+    if confirm in ['y', 'yes']:
+        return lessons_path
+    else:
+        print("Cancelled by user.")
+        return None
+    """
+    Converts a lesson title into a safe filename by replacing/removing invalid characters.
+    Appends '.mp3' extension.
+    """
+    # Replace spaces with underscores for readability.
+    s = title.strip().replace(' ', '_')
+    # Remove any character that is not alphanumeric, an underscore, or a hyphen.
+    s = ''.join(c for c in s if c.isalnum() or c in ('_', '-'))
+    # Ensure the filename is not empty after sanitization.
+    if not s:
+        s = "untitled_lesson"
+    return s + '.mp3'
 
 # --- Main Crawler Logic ---
 
@@ -199,8 +287,13 @@ def main():
     It iterates through lesson listing pages, fetches individual lesson pages,
     extracts audio links and titles, and downloads the audio files.
     """
-    # Start the crawling process from the initial lessons listing page.
-    current_page_full_url = urljoin(BASE_ARCHIVE_URL, START_LESSONS_PATH)
+    # Get user input for starting URL
+    start_lessons_path = get_user_input()
+    if not start_lessons_path:
+        return
+    
+    # Start the crawling process from the user-specified lessons listing page.
+    current_page_full_url = urljoin(BASE_ARCHIVE_URL, start_lessons_path)
     # List to store a summary of all lessons processed (useful for logging/debugging).
     all_lessons_summary = []
 

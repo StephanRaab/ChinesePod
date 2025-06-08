@@ -12,7 +12,7 @@ First, you'll need Python on your system.
     python --version
     # or sometimes
     python3 --version
-    ```
+```
 
 You should see a version number (e.g., Python 3.9.7).
 
@@ -25,51 +25,38 @@ Our script uses two external libraries: requests (for web requests) and Beautifu
 
     Open your command line.
     Run the following command to install them:
-    Bash
+
+    ```Bash
 
     pip install requests beautifulsoup4
     # If 'pip' fails, try 'pip3':
     # pip3 install requests beautifulsoup4
+    ```
 
     You'll see messages confirming the successful installation of these packages.
 
-## Step 3: Save the Python Code
-
-    Copy the entire Python script provided in our previous conversation.
-    Paste it into a plain text editor (like Notepad, VS Code, Sublime Text, etc.).
-    Save the file as popup_chinese_crawler.py.
-        Choose a location you can easily navigate to, like a new folder on your Desktop (e.g., C:\Users\YourName\Desktop\PopupCrawler on Windows, or /Users/YourName/Desktop/PopupCrawler on macOS/Linux).
-
-## Step 4: Open Your Command Line / Terminal
+## Step 3: Open Your Command Line / Terminal
 
     Windows: Search for "cmd" or "PowerShell" in the Start Menu and open it.
+
     macOS: Go to Applications > Utilities > Terminal.
+
     Linux: Open your preferred terminal emulator.
 
 ## Step 5: Navigate to the Script's Directory
 
-You need to tell your command line where the popup_chinese_crawler.py file is located. Use the cd (change directory) command.
-
-    Example (Windows): If your file is in C:\Users\YourName\Desktop\PopupCrawler, type:
-    Bash
-
-cd C:\Users\YourName\Desktop\PopupCrawler
-
-Example (macOS/Linux): If your file is in /Users/YourName/Desktop/PopupCrawler, type:
-Bash
-
-    cd /Users/YourName/Desktop/PopupCrawler
-
-    Pro Tip: After typing cd (note the space!), you can often drag and drop the folder containing your script directly into the terminal window, and it will automatically paste the correct path.
+`cd` to the directory this file is in `popup_chinese_crawler.py`.
 
 ## Step 6: Run the Python Script
 
 Once you're in the correct directory, execute the script:
 Bash
 
+```python
 python popup_chinese_crawler.py
-# If 'python' doesn't work, try 'python3':
-# python3 popup_chinese_crawler.py
+```
+If 'python' doesn't work, try 'python3':
+`python3 popup_chinese_crawler.py`
 
 What to Expect When Running:
 

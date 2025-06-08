@@ -6,19 +6,20 @@ This guide will walk you through setting up and executing the Python script from
 
 First, you'll need Python on your system.
 
-    - Check Installation: Open your command line (Terminal on macOS/Linux, Command Prompt or PowerShell on Windows) and type:
+- Check Installation: Open your command line (Terminal on macOS/Linux, Command Prompt or PowerShell on Windows) and type:
 
-    ```bash
-
+```bash
     python --version
     # or sometimes
     python3 --version
-    ```    
+    ```
 
-    You should see a version number (e.g., Python 3.9.7).
-   - Install if Needed: If Python isn't found, download it from python.org/downloads/. On Windows, make sure to check "Add Python to PATH" during installation.
+You should see a version number (e.g., Python 3.9.7).
 
-Step 2: Install Required Libraries
+- Install if Needed: If Python isn't found, download it from python.org/downloads/. On Windows, make sure to check "Add Python to PATH" during installation.
+   
+
+## Step 2: Install Required Libraries
 
 Our script uses two external libraries: requests (for web requests) and BeautifulSoup4 (for HTML parsing).
 
@@ -32,20 +33,20 @@ Our script uses two external libraries: requests (for web requests) and Beautifu
 
     You'll see messages confirming the successful installation of these packages.
 
-Step 3: Save the Python Code
+## Step 3: Save the Python Code
 
     Copy the entire Python script provided in our previous conversation.
     Paste it into a plain text editor (like Notepad, VS Code, Sublime Text, etc.).
     Save the file as popup_chinese_crawler.py.
         Choose a location you can easily navigate to, like a new folder on your Desktop (e.g., C:\Users\YourName\Desktop\PopupCrawler on Windows, or /Users/YourName/Desktop/PopupCrawler on macOS/Linux).
 
-Step 4: Open Your Command Line / Terminal
+## Step 4: Open Your Command Line / Terminal
 
     Windows: Search for "cmd" or "PowerShell" in the Start Menu and open it.
     macOS: Go to Applications > Utilities > Terminal.
     Linux: Open your preferred terminal emulator.
 
-Step 5: Navigate to the Script's Directory
+## Step 5: Navigate to the Script's Directory
 
 You need to tell your command line where the popup_chinese_crawler.py file is located. Use the cd (change directory) command.
 
@@ -61,7 +62,7 @@ Bash
 
     Pro Tip: After typing cd (note the space!), you can often drag and drop the folder containing your script directly into the terminal window, and it will automatically paste the correct path.
 
-Step 6: Run the Python Script
+## Step 6: Run the Python Script
 
 Once you're in the correct directory, execute the script:
 Bash

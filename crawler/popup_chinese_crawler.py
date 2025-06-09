@@ -120,7 +120,7 @@ def parse_lessons_page(html_content, current_page_url):
                 print(f"  Found lesson: '{title}' -> {lesson_url}")
                 lessons_on_page.append({'title': title, 'url': lesson_url})
             else:
-                print(f"  Skipping item - missing title or URL: title='{title}', url='{lesson_url}'")
+                print(f"  Skipping item - missing title or URL: title='{title}', url='{lesson_url}'\n")
 
     # --- 2. Find the "Next Page" Link (unchanged) ---
     paginator_div = soup.select_one('div.paginator#paginator')
@@ -197,6 +197,14 @@ def parse_lesson_page_for_audio(html_content, lesson_detail_url):
         
     return None
 
+def file_already_exists(folder, filename):
+    """
+    Quick check if a file already exists without any processing.
+    Returns True if file exists, False otherwise.
+    """
+    filepath = os.path.join(folder, filename)
+    return os.path.exists(filepath)
+
 def download_file(url, folder, filename):
     """
     Downloads a file from a given URL and saves it to a specified local folder.
@@ -207,10 +215,10 @@ def download_file(url, folder, filename):
     # Skip download if the file already exists locally.
     if os.path.exists(filepath):
         print(f"  - Skipping: {filename} already exists in {folder}.\n")
-        return
+        return True  # Return True to indicate successful handling
 
     max_retries = 3
-    retry_delay = 2  # seconds
+    retry_delay = 3  # seconds (increased from 2)
     
     for attempt in range(max_retries):
         try:
@@ -230,12 +238,12 @@ def download_file(url, folder, filename):
                     for chunk in r.iter_content(chunk_size=8192):
                         f.write(chunk)
             print(f"  - Successfully downloaded: {filename}\n")
-            return  # Success, exit the retry loop
+            return True  # Success, exit the retry loop
             
         except requests.exceptions.HTTPError as e:
             if r.status_code == 404:
                 print(f"  - Audio file not found in archive for {filename} (404 error)")
-                return  # Don't retry 404s - the file simply doesn't exist in the archive
+                return False  # Return False to indicate failure
             else:
                 print(f"  - HTTP error downloading {filename} (attempt {attempt + 1}): {e}")
         except requests.exceptions.RequestException as e:
@@ -244,6 +252,7 @@ def download_file(url, folder, filename):
             print(f"  - Unexpected error downloading {filename} (attempt {attempt + 1}): {e}")
     
     print(f"  - Failed to download {filename} after {max_retries} attempts")
+    return False  # Return False to indicate failure
 
 def get_user_input():
     """
@@ -383,6 +392,20 @@ def main():
         for lesson_info in lessons_on_current_page:
             lesson_title_from_listing = lesson_info['title'] # Title extracted from the listing page.
             lesson_detail_url = lesson_info['url'] # URL to the individual lesson detail page.
+            
+            # Quick pre-check: generate potential filename and see if it already exists
+            potential_filename = sanitize_filename(lesson_title_from_listing)
+            if file_already_exists(DOWNLOAD_DIR, potential_filename):
+                print(f"  - Skipping (already downloaded): '{lesson_title_from_listing}'\n")
+                # Still add to summary for completeness
+                all_lessons_summary.append({
+                    'title': lesson_title_from_listing,
+                    'lesson_url': lesson_detail_url,
+                    'audio_url': 'skipped - already exists',
+                    'filename': potential_filename
+                })
+                continue  # Skip to next lesson without fetching detail page
+            
             print(f"  - Processing lesson: '{lesson_title_from_listing}' at {lesson_detail_url}")
 
             # Fetch the HTML content of the individual lesson detail page.
@@ -406,27 +429,46 @@ def main():
                 else:
                     print(f"    Warning: Main lesson title 'div.lesson_title' not found. Using title from listing page.")
 
+                # Check again with the refined title
+                refined_filename = sanitize_filename(lesson_title_for_file)
+                if file_already_exists(DOWNLOAD_DIR, refined_filename):
+                    print(f"    - Skipping (already downloaded with refined title): '{lesson_title_for_file}\n'")
+                    all_lessons_summary.append({
+                        'title': lesson_title_for_file,
+                        'lesson_url': lesson_detail_url,
+                        'audio_url': 'skipped - already exists',
+                        'filename': refined_filename
+                    })
+                    continue
+
                 # --- Extract the Audio Link from the lesson detail page ---
                 audio_link = parse_lesson_page_for_audio(lesson_html, lesson_detail_url)
                 if audio_link:
-                    # Sanitize the title and prepare the filename.
-                    sanitized_name = sanitize_filename(lesson_title_for_file)
                     # Add lesson details to the summary list.
                     all_lessons_summary.append({
                         'title': lesson_title_for_file,
                         'lesson_url': lesson_detail_url,
                         'audio_url': audio_link,
-                        'filename': sanitized_name
+                        'filename': refined_filename
                     })
                     # Download the audio file.
-                    download_file(audio_link, DOWNLOAD_DIR, sanitized_name)
+                    download_success = download_file(audio_link, DOWNLOAD_DIR, refined_filename)
+                    if not download_success:
+                        print(f"    Failed to download audio for '{lesson_title_for_file}'")
                 else:
                     print(f"    No audio found for '{lesson_title_for_file}' at {lesson_detail_url}")
+                    # Still add to summary for tracking
+                    all_lessons_summary.append({
+                        'title': lesson_title_for_file,
+                        'lesson_url': lesson_detail_url,
+                        'audio_url': 'not found',
+                        'filename': refined_filename
+                    })
             else:
                 print(f"    Could not fetch detail page for '{lesson_title_from_listing}' at {lesson_detail_url}")
 
             # Be polite: add a small delay between fetching individual lesson pages.
-            time.sleep(2) # Wait 2 seconds to avoid overwhelming the server.
+            time.sleep(3) # Wait 3 seconds to avoid overwhelming the server (increased from 2)
 
         # Move to the next lesson listing page if a link was found.
         current_page_full_url = next_page_full_url

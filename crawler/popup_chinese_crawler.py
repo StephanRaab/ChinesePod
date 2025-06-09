@@ -206,7 +206,7 @@ def download_file(url, folder, filename):
     
     # Skip download if the file already exists locally.
     if os.path.exists(filepath):
-        print(f"  - Skipping: {filename} already exists in {folder}.")
+        print(f"  - Skipping: {filename} already exists in {folder}.\n")
         return
 
     max_retries = 3

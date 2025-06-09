@@ -120,7 +120,7 @@ def parse_lessons_page(html_content, current_page_url):
                 print(f"  Found lesson: '{title}' -> {lesson_url}")
                 lessons_on_page.append({'title': title, 'url': lesson_url})
             else:
-                print(f"  Skipping item - missing title or URL: title='{title}', url='{lesson_url}'\n")
+                print(f"  Skipping item - missing title or URL: title='{title}', url='{lesson_url}'")
 
     # --- 2. Find the "Next Page" Link (unchanged) ---
     paginator_div = soup.select_one('div.paginator#paginator')
@@ -214,7 +214,7 @@ def download_file(url, folder, filename):
     
     # Skip download if the file already exists locally.
     if os.path.exists(filepath):
-        print(f"  - Skipping: {filename} already exists in {folder}.\n")
+        print(f"  - Skipping: {filename} already exists in {folder}.")
         return True  # Return True to indicate successful handling
 
     max_retries = 3
@@ -396,7 +396,7 @@ def main():
             # Quick pre-check: generate potential filename and see if it already exists
             potential_filename = sanitize_filename(lesson_title_from_listing)
             if file_already_exists(DOWNLOAD_DIR, potential_filename):
-                print(f"  - Skipping (already downloaded): '{lesson_title_from_listing}'\n")
+                print(f"  - Skipping (already downloaded): '{lesson_title_from_listing}'")
                 # Still add to summary for completeness
                 all_lessons_summary.append({
                     'title': lesson_title_from_listing,
@@ -432,7 +432,7 @@ def main():
                 # Check again with the refined title
                 refined_filename = sanitize_filename(lesson_title_for_file)
                 if file_already_exists(DOWNLOAD_DIR, refined_filename):
-                    print(f"    - Skipping (already downloaded with refined title): '{lesson_title_for_file}\n'")
+                    print(f"    - Skipping (already downloaded with refined title): '{lesson_title_for_file}'")
                     all_lessons_summary.append({
                         'title': lesson_title_for_file,
                         'lesson_url': lesson_detail_url,

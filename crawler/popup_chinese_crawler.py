@@ -217,8 +217,8 @@ def download_file(url, folder, filename):
         print(f"  - Skipping: {filename} already exists in {folder}.")
         return True  # Return True to indicate successful handling
 
-    max_retries = 3
-    retry_delay = 3  # seconds (increased from 2)
+    max_retries = 5
+    retry_delay = 5
     
     for attempt in range(max_retries):
         try:

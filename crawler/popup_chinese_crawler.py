@@ -12,7 +12,7 @@ import re # For parsing flashvars
 BASE_ARCHIVE_URL = "https://web.archive.org"
 
 # Base path for the archived PopupChinese lessons
-BASE_LESSONS_PATH = "/web/20221129182300/https://popupchinese.com/lessons/"
+BASE_LESSONS_PATH = "/web/20140630222515/https://popupchinese.com/lessons/"
 
 # Directory where the downloaded audio files and the summary JSON will be saved.
 DOWNLOAD_DIR = "popup_chinese_audio"

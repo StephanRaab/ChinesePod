@@ -39,7 +39,7 @@ def get_page_content(url):
         return response.text
     except requests.exceptions.RequestException as e:
         print(f"Error fetching {url}: {e}")
-        return None
+        return None 
 
 def parse_lessons_page(html_content, current_page_url):
     """

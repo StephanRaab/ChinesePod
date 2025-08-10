@@ -1,0 +1,55 @@
+{
+  "title": "菜鸟1 Basic Greetings",
+  "conversation": {
+    "chinese": [
+      "你好吗?",
+      "(我)很好，谢谢。",
+      "你是中国人吗？",
+      "不是,我是美国人。"
+    ],
+    "pinyin": [
+      "Nǐ hǎo ma?",
+      "Wǒ hěn hǎo , xiè xie .",
+      "Nǐ shì zhōng guó rén ma ?",
+      "Bú shì , wǒ shì měi guó rén ."
+    ],
+    "english": [
+      "How are you?",
+      "Very well, thank you / Fine.",
+      "Are you Chinese?",
+      "No, I’m American."
+    ]
+  },
+  "vocabulary": {
+    "chinese": [
+      "我",
+      "你",
+      "他/她/它",
+      "我们",
+      "是/是/是",
+      "是的",
+      "很好",
+      "谢谢"
+    ],
+    "pinyin": [
+      "wǒ",
+      "nǐ",
+      "tā",
+      "tā men",
+      "shì",
+      "shì de",
+      "hěn hǎo",
+      "xiè xie"
+    ],
+    "english": [
+      "I",
+      "you",
+      "He/She/It",
+      "they",
+      "are/is/am",
+      "yes",
+      "great/very well/fine",
+      "thanks/thank you"
+    ]
+  }
+}

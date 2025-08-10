@@ -1,55 +1,67 @@
 {
   "title": "菜鸟1 Basic Greetings",
-  "conversation": {
-    "chinese": [
-      "你好吗?",
-      "(我)很好，谢谢。",
-      "你是中国人吗？",
-      "不是,我是美国人。"
-    ],
-    "pinyin": [
-      "Nǐ hǎo ma?",
-      "Wǒ hěn hǎo , xiè xie .",
-      "Nǐ shì zhōng guó rén ma ?",
-      "Bú shì , wǒ shì měi guó rén ."
-    ],
-    "english": [
-      "How are you?",
-      "Very well, thank you / Fine.",
-      "Are you Chinese?",
-      "No, I’m American."
-    ]
-  },
-  "vocabulary": {
-    "chinese": [
-      "我",
-      "你",
-      "他/她/它",
-      "我们",
-      "是/是/是",
-      "是的",
-      "很好",
-      "谢谢"
-    ],
-    "pinyin": [
-      "wǒ",
-      "nǐ",
-      "tā",
-      "tā men",
-      "shì",
-      "shì de",
-      "hěn hǎo",
-      "xiè xie"
-    ],
-    "english": [
-      "I",
-      "you",
-      "He/She/It",
-      "they",
-      "are/is/am",
-      "yes",
-      "great/very well/fine",
-      "thanks/thank you"
-    ]
-  }
+  "conversation": [
+    {
+      "chinese": "你好吗?",
+      "pinyin": "Nǐ hǎo ma?",
+      "english": "How are you?"
+    },
+    {
+      "chinese": "(我)很好，谢谢。",
+      "pinyin": "Wǒ hěn hǎo, xiè xie.",
+      "english": "Very well, thank you / Fine."
+    },
+    {
+      "chinese": "你是中国人吗？",
+      "pinyin": "Nǐ shì zhōng guó rén ma?",
+      "english": "Are you Chinese?"
+    },
+    {
+      "chinese": "不是,我是美国人。",
+      "pinyin": "Bú shì, wǒ shì měi guó rén.",
+      "english": "No, I’m American."
+    }
+  ],
+  "vocabulary": [
+    {
+      "chinese": "我",
+      "pinyin": "wǒ",
+      "english": "I"
+    },
+    {
+      "chinese": "你",
+      "pinyin": "nǐ",
+      "english": "you"
+    },
+    {
+      "chinese": "他/她/它",
+      "pinyin": "tā",
+      "english": "He/She/It"
+    },
+    {
+      "chinese": "我们",
+      "pinyin": "wǒ men",
+      "english": "we"
+    },
+    {
+      "chinese": "是/是/是",
+      "pinyin": "shì",
+      "english": "are/is/am"
+    },
+    {
+      "chinese": "是的",
+      "pinyin": "shì de",
+      "english": "yes"
+    },
+    {
+      "chinese": "很好",
+      "pinyin": "hěn hǎo",
+      "english": "great/very well/fine"
+    },
+    {
+      "chinese": "谢谢",
+      "pinyin": "xiè xie",
+      "english": "thanks/thank you"
+    }
+  ]
 }
